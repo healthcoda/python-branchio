@@ -1,8 +1,10 @@
 import json
 import sys
 try:
+    from urllib.parse import quote_plus
     from urllib.request import Request, urlopen
 except ImportError:
+    from urllib2.parse import quote_plus
     from urllib2 import Request, urlopen
 
 if sys.version_info < (3,):
@@ -111,6 +113,57 @@ class Client(object):
             self._check_param("branch_key", self.branch_key, params, optional=False, type=(binary_type, text_type))
             return self.make_api_call(method, url, json_params=params)
 
+    def modify_deep_link_url(self, url, data=None, alias=None, type=0, duration=None, identity=None, tags=None,
+                             campaign=None, feature=None, channel=None, stage=None, skip_api_call=False):
+        """
+        Modify a deep linking url
+
+        See the URL https://github.com/BranchMetrics/branch-deep-linking-public-api#modifying-existing-deep-linking-urls
+
+        You can also use this method to bulk create deep link by setting "skip_api_call=True" and using the parameters
+        returned by the method as an array and call "create_deep_linking_urls"
+
+        :return: params or the response
+        """
+        url = "/v1/url?url={}".format(url)
+        method = "PUT"
+        params = {}
+
+        # Check Params
+        self._check_param("data", data, params, type=dict)
+        self._check_param("alias", alias, params, type=(binary_type, text_type))
+        self._check_param("type", type, params, type=int, lte=2, gte=0)
+        self._check_param("duration", duration, params, type=int)
+        self._check_param("identity", identity, params, type=(binary_type, text_type), max_length=127)
+        self._check_param("tags", tags, params, type=list, sub_type=(binary_type, text_type), sub_max_length=64)
+        self._check_param("campaign", campaign, params, type=(binary_type, text_type), max_length=128)
+        self._check_param("feature", feature, params, type=(binary_type, text_type), max_length=128)
+        self._check_param("channel", channel, params, type=(binary_type, text_type), max_length=128)
+        self._check_param("stage", stage, params, type=(binary_type, text_type), max_length=128)
+
+        if skip_api_call is True:
+            return params
+        else:
+            self._check_param("branch_key", self.branch_key, params, optional=False, type=(binary_type, text_type))
+            self._check_param("branch_secret", self.branch_secret, params, optional=False, type=(binary_type, text_type))
+            return self.make_api_call(method, url, json_params=params)
+
+    def get_deep_link_url(self, url):
+        """
+        Modify a deep linking url
+
+        See the URL https://github.com/BranchMetrics/branch-deep-linking-public-api#viewing-state-of-existing-deep-linking-urls
+
+        You can also use this method to bulk create deep link by setting "skip_api_call=True" and using the parameters
+        returned by the method as an array and call "create_deep_linking_urls"
+
+        :return: params or the response
+        """
+        url = "/v1/url?url={}&branch_key={}".format(quote_plus(url), self.branch_key)
+        method = "GET"
+        params = {}
+        return self.make_api_call(method, url)
+
     def create_deep_linking_urls(self, url_params):
         """
         Bulk Creates Deep Linking URLs
@@ -153,7 +206,11 @@ class Client(object):
         if encoded_params is not None and self.verbose is True:
             print("Params: {}".format(encoded_params))
 
-        request = Request(url, encoded_params.encode('utf-8'), headers)
+        request = None
+        if encoded_params:
+            request = Request(url, encoded_params.encode('utf-8'), headers)
+        else:
+            request = Request(url, headers=headers)
         request.get_method = lambda: method
         response = urlopen(request).read()
         return json.loads(response.decode('utf-8'))
