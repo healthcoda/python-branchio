@@ -19,14 +19,16 @@ class Client(object):
 
     BRANCH_BASE_URI = "https://api.branch.io"
 
-    def __init__(self, branch_key, verbose=False):
+    def __init__(self, branch_key, branch_secret, verbose=False):
         """
         Initializes the Adapter
         :param branch_key: The key used to access the branch API
+        :param branch_secret: The secret used to access the branch API
         :param verbose: True if you want verbose statements
         :return: Nothing
         """
         self.branch_key = branch_key
+        self.branch_secret = branch_secret
         self.verbose = verbose
 
     @classmethod
